@@ -1,0 +1,107 @@
+CREATE OR REPLACE FUNCTION cursorx() RETURNS SETOF text AS
+$BODY$
+DECLARE
+    -- Declaración EXPLICITA del cursor
+    cur_ruta CURSOR FOR SELECT * FROM ruta; 
+    cur_segmento CURSOR FOR SELECT * FROM segmento_ruta; 
+    
+    regruta ruta%ROWTYPE;
+    regsegmento segmento_ruta%ROWTYPE;    
+
+    nombre_ruta text;
+    sw int;
+BEGIN
+   nombre_ruta='';
+   sw=1;
+   -- Procesa el cursor
+   FOR regruta IN cur_ruta LOOP
+	nombre_ruta= regruta.idRuta|| '::' ||regruta.nombre;
+	for regsegmento in cur_segmento loop
+		if regruta.idRuta=regsegmento.idRuta or regruta.idRuta=115 or regruta.idRuta=116 or regruta.idRuta=94 or regruta.idRuta=9 then 
+			if sw=1 then 
+				nombre_ruta=nombre_ruta || '::' || regsegmento.puntoSigIni ||';;'||regsegmento.distancia || ';;' ||regsegmento.puntoSigFin ;
+				sw=0;
+			else
+				nombre_ruta=nombre_ruta || ';;' || regsegmento.distancia || ';;' ||regsegmento.puntoSigFin ;
+			end if;
+		end if;
+	end loop;
+		return next nombre_ruta;
+
+	sw=1;
+	--agregar elementos al vector
+	--select array_append(vec_rutas, nombre_ruta);
+
+   END LOOP;
+   RETURN;
+
+   
+END $BODY$ LANGUAGE 'plpgsql';
+
+
+
+
+CREATE OR REPLACE FUNCTION mostrar_rutas() 
+  RETURNS SETOF ruta AS
+$func$
+DECLARE
+   registro ruta%ROWTYPE;
+BEGIN
+
+FOR registro IN
+    SELECT * FROM ruta
+LOOP
+    RETURN next registro;
+END LOOP;
+
+RETURN;
+
+END
+$func$ LANGUAGE plpgsql;
+
+
+
+
+
+CREATE OR REPLACE FUNCTION impl_cursor2() RETURNS TABLE (idruta int, nombre varchar, distancia varchar) AS
+$func$
+DECLARE
+    registro RECORD;
+    QUERY RECORD;
+BEGIN
+   -- Cursor IMPLICITO en el ciclo FOR
+   FOR registro IN 
+	SELECT ruta.idRuta, ruta.nombre, segmento_ruta.distancia
+	FROM ruta, segmento_ruta
+   LOOP 
+       RETURN QUERY 
+       select ruta.idRuta, ruta.nombre, segmento_ruta.distancia
+       from ruta, segmento_ruta;
+   END LOOP;
+   RETURN;
+END $func$ LANGUAGE 'plpgsql' VOLATILE;
+
+
+
+
+CREATE OR REPLACE FUNCTION impl_cursor3() RETURNS VOID AS
+$BODY$
+DECLARE
+    registro varchar(500);
+BEGIN
+   -- Cursor IMPLICITO en el ciclo FOR
+   FOR registro IN SELECT nombre, distancia FROM ruta, segmento_ruta LOOP 
+       
+   END LOOP;
+   RETURN;
+END $BODY$ LANGUAGE 'plpgsql';
+
+
+
+
+CREATE OR REPLACE FUNCTION f_incrementar(variable int) RETURNS int AS $$
+BEGIN
+RETURN variable + 1;
+END;
+$$ LANGUAGE plpgsql;
+
